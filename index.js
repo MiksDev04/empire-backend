@@ -14,21 +14,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize database connection (async middleware)
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    console.error('Database connection error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ 
-        success: false, 
-        message: 'Database connection failed' 
-      });
-    }
-  }
-});
+// Connect to database (cached connection will be reused)
+connectDB().catch(err => console.error('Database connection error:', err));
 
 // Routes
 app.get('/', (req, res) => {
@@ -41,12 +28,11 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 
-// For local development
-if (!process.env.VERCEL) {
+// For local development only
+if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Server is running on port http://localhost:${PORT}`);
   });
 }
 
-// Export for Vercel serverless deployment
 export default app;
