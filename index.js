@@ -25,6 +25,10 @@ app.get('/', (req, res) => {
   });
 });
 
+app.get('/hello', (req, res) => {
+  res.json({ message: 'Hello, There!' });
+});
+
 app.use('/api/auth', authRoutes);
 
 // Start server (only for local development)
