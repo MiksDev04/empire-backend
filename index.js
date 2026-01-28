@@ -28,8 +28,17 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    success: false,
+    message: process.env.NODE_ENV === 'production' ? 'Server error' : err.message 
+  });
+});
+
 // For local development only
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server is running on port http://localhost:${PORT}`);
   });
