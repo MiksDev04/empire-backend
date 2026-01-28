@@ -14,8 +14,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to MongoDB
-connectDB();
+// Initialize database connection (async middleware)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Database connection failed' 
+      });
+    }
+  }
+});
 
 // Routes
 app.get('/', (req, res) => {
