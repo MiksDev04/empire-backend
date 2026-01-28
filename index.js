@@ -7,7 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 dotenv.config();
 
 const app = express();
-const PORT = 3600;
+const PORT = process.env.PORT || 3600;
 
 // Middleware
 app.use(cors());
@@ -19,11 +19,21 @@ connectDB();
 
 // Routes
 app.get('/', (req, res) => {
-  res.send('Hello from the Empire backend!');
+  res.json({ 
+    success: true,
+    message: 'Hello from the Empire backend!',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.use('/api/auth', authRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port http://localhost:${PORT}`);
-});
+// For local development
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel serverless deployment
+export default app;
