@@ -124,7 +124,7 @@ export const signin = async (req, res) => {
 // @access  Private
 export const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(req.user._id).select('-password');
     
     res.status(200).json({
       success: true,
@@ -135,6 +135,86 @@ export const getMe = async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: error.message || 'Server error' 
+    });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { username, email, currentPassword, password, avatar } = req.body;
+
+    // Find user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    // If updating password, verify current password
+    if (password) {
+      if (!currentPassword) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Current password is required to change password' 
+        });
+      }
+
+      const isPasswordValid = await user.comparePassword(currentPassword);
+      if (!isPasswordValid) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Current password is incorrect' 
+        });
+      }
+
+      // Validate new password
+      if (password.length < 6) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'New password must be at least 6 characters' 
+        });
+      }
+
+      user.password = password;
+    }
+
+    // Update other fields
+    if (username) user.username = username;
+    if (email) {
+      // Check if email is already taken by another user
+      const existingUser = await User.findOne({ email, _id: { $ne: user._id } });
+      if (existingUser) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Email already taken' 
+        });
+      }
+      user.email = email;
+    }
+    if (avatar) user.avatar = avatar;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: error.message || 'Server error while updating profile' 
     });
   }
 };

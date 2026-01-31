@@ -5,6 +5,9 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import goalsRoutes from './routes/goalsRoutes.js';
 import workoutRoutes from './routes/workoutRoutes.js';
+import budgetRoutes from './routes/budgetRoutes.js';
+import journalRoutes from './routes/journalRoutes.js';
+import trashRoutes from './routes/trashRoutes.js';
 
 dotenv.config();
 
@@ -34,6 +37,9 @@ app.get('/hello', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/workouts', workoutRoutes);
+app.use('/api/budget', budgetRoutes);
+app.use('/api/journal', journalRoutes);
+app.use('/api/trash', trashRoutes);
 
 // Start server (only for local development)
 if (!process.env.VERCEL) {
