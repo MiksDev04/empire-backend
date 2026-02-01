@@ -28,4 +28,10 @@ router.delete('/:weekId', workoutController.deleteWeek);
 // Sync current week with template
 router.post('/:weekId/sync', workoutController.syncWithTemplate);
 
+// Manual trigger for weekly archival (for testing)
+router.post('/archive-all', workoutController.manualArchiveWeeks);
+
+// Generate sample workout history (for testing)
+router.post('/sample-history', workoutController.generateSampleHistory);
+
 export default router;

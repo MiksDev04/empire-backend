@@ -1,4 +1,5 @@
 import Workout from '../models/Workout.js';
+import { triggerManualArchival } from '../utils/workoutScheduler.js';
 
 // Get user's template or create default one
 export const getTemplate = async (req, res) => {
@@ -406,4 +407,124 @@ export const syncWithTemplate = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+// Manual trigger for weekly archival (for testing)
+export const manualArchiveWeeks = async (req, res) => {
+  try {
+    await triggerManualArchival();
+    res.json({ success: true, message: 'Weekly archival completed' });
+  } catch (error) {
+    console.error('Error in manual archival:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Generate sample workout history (for testing)
+export const generateSampleHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Create 3 weeks of sample history
+    const sampleWeeks = [];
+    
+    for (let weeksAgo = 3; weeksAgo >= 1; weeksAgo--) {
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() - (weeksAgo * 7) - now.getDay());
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+      
+      const weekId = startDate.toISOString().split('T')[0];
+      
+      // Check if this week already exists
+      const existing = await Workout.findOne({
+        userId,
+        weekId,
+        isTemplate: false,
+      });
+      
+      if (existing) {
+        continue; // Skip if already exists
+      }
+      
+      const sampleDays = {
+        Sunday: { 
+          name: 'Rest Day', 
+          exercises: [] 
+        },
+        Monday: {
+          name: 'Chest & Triceps',
+          exercises: [
+            { name: 'Bench Press', reps: '10', sets: '4', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 86400000) },
+            { name: 'Incline Dumbbell Press', reps: '12', sets: '3', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 86400000) },
+            { name: 'Tricep Dips', reps: '15', sets: '3', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 86400000) },
+          ],
+        },
+        Tuesday: {
+          name: 'Back & Biceps',
+          exercises: [
+            { name: 'Pull-ups', reps: '8', sets: '4', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 172800000) },
+            { name: 'Barbell Rows', reps: '10', sets: '4', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 172800000) },
+            { name: 'Bicep Curls', reps: '12', sets: '3', repsUnit: 'reps', completed: false, completedAt: null },
+          ],
+        },
+        Wednesday: {
+          name: 'Legs',
+          exercises: [
+            { name: 'Squats', reps: '12', sets: '4', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 259200000) },
+            { name: 'Leg Press', reps: '15', sets: '3', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 259200000) },
+            { name: 'Lunges', reps: '10', sets: '3', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 259200000) },
+          ],
+        },
+        Thursday: {
+          name: 'Shoulders',
+          exercises: [
+            { name: 'Military Press', reps: '10', sets: '4', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 345600000) },
+            { name: 'Lateral Raises', reps: '15', sets: '3', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 345600000) },
+          ],
+        },
+        Friday: {
+          name: 'Cardio & Abs',
+          exercises: [
+            { name: 'Running', reps: '30', sets: '1', repsUnit: 'minutes', completed: true, completedAt: new Date(startDate.getTime() + 432000000) },
+            { name: 'Planks', reps: '60', sets: '3', repsUnit: 'seconds', completed: true, completedAt: new Date(startDate.getTime() + 432000000) },
+            { name: 'Crunches', reps: '25', sets: '3', repsUnit: 'reps', completed: false, completedAt: null },
+          ],
+        },
+        Saturday: {
+          name: 'Full Body',
+          exercises: [
+            { name: 'Deadlifts', reps: '8', sets: '4', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 518400000) },
+            { name: 'Push-ups', reps: '20', sets: '3', repsUnit: 'reps', completed: true, completedAt: new Date(startDate.getTime() + 518400000) },
+          ],
+        },
+      };
+      
+      const workout = await Workout.create({
+        userId,
+        weekId,
+        startDate,
+        endDate,
+        days: sampleDays,
+        isTemplate: false,
+        archivedAt: new Date(),
+      });
+      
+      sampleWeeks.push(workout);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Created ${sampleWeeks.length} sample workout weeks`,
+      data: sampleWeeks 
+    });
+  } catch (error) {
+    console.error('Error generating sample history:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 
