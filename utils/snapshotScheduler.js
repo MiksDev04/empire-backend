@@ -3,6 +3,7 @@ import DailySnapshot from '../models/DailySnapshot.js';
 import Goal from '../models/Goal.js';
 import Workout from '../models/Workout.js';
 import Transaction from '../models/Transaction.js';
+import Journal from '../models/Journal.js';
 import User from '../models/User.js';
 
 // Calculate snapshot for a specific user and date
@@ -14,37 +15,45 @@ export const calculateSnapshot = async (userId, date) => {
   const dayEnd = new Date(snapshotDate);
   dayEnd.setHours(23, 59, 59, 999);
 
-  // Calculate workouts completed
-  const workouts = await Workout.find({
-    userId: userId,
-    startDate: { $lte: dayEnd },
-    $or: [
-      { endDate: { $gte: dayStart } },
-      { endDate: null }
-    ],
+  // Get workout for this day
+  const dayOfWeek = snapshotDate.getDay();
+  const startOfWeek = new Date(snapshotDate);
+  startOfWeek.setDate(snapshotDate.getDate() - dayOfWeek);
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const weekId = startOfWeek.toISOString().split('T')[0];
+  const weekWorkout = await Workout.findOne({
+    userId,
+    weekId,
     isTemplate: false,
   });
 
-  let workoutsCompleted = 0;
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayOfWeek = dayNames[snapshotDate.getDay()];
+  let workoutCompleted = false;
+  let workoutName = '';
+  let exercisesCompleted = 0;
+  let totalExercises = 0;
   
-  workouts.forEach(workout => {
-    const day = workout.days?.[dayOfWeek];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayOfWeekName = dayNames[dayOfWeek];
+  
+  if (weekWorkout) {
+    const day = weekWorkout.days?.[dayOfWeekName];
     if (day && day.exercises && day.exercises.length > 0) {
-      const allCompleted = day.exercises.every(ex => ex.completed);
-      if (allCompleted) {
-        workoutsCompleted++;
-      }
+      workoutName = day.name;
+      totalExercises = day.exercises.length;
+      exercisesCompleted = day.exercises.filter(ex => ex.completed).length;
+      workoutCompleted = exercisesCompleted === totalExercises;
     }
-  });
+  }
 
   // Calculate goals completed
   const goalsCompleted = await Goal.countDocuments({
     user: userId,
     completed: true,
-    dateCompleted: { $gte: dayStart, $lte: dayEnd },
+    completedAt: { $gte: dayStart, $lte: dayEnd },
   });
+  
+  const totalGoals = await Goal.countDocuments({ user: userId });
 
   // Calculate savings
   const transactions = await Transaction.find({
@@ -52,15 +61,37 @@ export const calculateSnapshot = async (userId, date) => {
     date: { $gte: dayStart, $lte: dayEnd },
   });
 
-  const totalIncome = transactions
+  const income = transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpense = transactions
+  const expenses = transactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const savings = totalIncome - totalExpense;
+  const savings = income - expenses;
+  
+  // Calculate total balance up to this date
+  const allTransactionsUpToDate = await Transaction.find({
+    user: userId,
+    date: { $lte: dayEnd },
+  });
+  
+  const totalIncome = allTransactionsUpToDate
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const totalExpenses = allTransactionsUpToDate
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const totalBalance = totalIncome - totalExpenses;
+  
+  // Count journals written
+  const journalsWritten = await Journal.countDocuments({
+    user: userId,
+    createdAt: { $gte: dayStart, $lte: dayEnd },
+  });
 
   // Create or update snapshot
   const snapshot = await DailySnapshot.findOneAndUpdate(
@@ -68,11 +99,17 @@ export const calculateSnapshot = async (userId, date) => {
     {
       user: userId,
       date: snapshotDate,
-      workoutsCompleted,
-      goalsCompleted,
+      income,
+      expenses,
       savings,
-      totalIncome,
-      totalExpense,
+      totalBalance,
+      goalsCompleted,
+      totalGoals,
+      workoutCompleted,
+      workoutName,
+      exercisesCompleted,
+      totalExercises,
+      journalsWritten,
     },
     { upsert: true, new: true }
   );
