@@ -269,25 +269,44 @@ export const getDayActivities = async (req, res) => {
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
     
-    // Get goals completed on this day
-    const goals = await Goal.find({
+    // Get goals that were completed on this day OR have target date on this day
+    const completedGoals = await Goal.find({
       user: userId,
+      completed: true,
       completedAt: { $gte: dayStart, $lte: dayEnd },
-    }).select('title completed');
+    }).select('title completed createdAt targetDate completedAt');
     
-    // Get transactions
+    const targetGoals = await Goal.find({
+      user: userId,
+      targetDate: { $gte: dayStart, $lte: dayEnd },
+    }).select('title completed createdAt targetDate completedAt');
+    
+    // Merge and deduplicate goals
+    const goalsMap = new Map();
+    [...completedGoals, ...targetGoals].forEach(goal => {
+      goalsMap.set(goal._id.toString(), {
+        title: goal.title,
+        status: goal.completed ? 'completed' : 'pending',
+        dateCreated: goal.createdAt,
+        targetDate: goal.targetDate,
+        dateCompleted: goal.completedAt,
+      });
+    });
+    
+    const goals = Array.from(goalsMap.values());
+    
+    // Get transactions with full details
     const transactions = await Transaction.find({
       user: userId,
       date: { $gte: dayStart, $lte: dayEnd },
-    });
+    }).select('description type amount category date');
     
-    const income = transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const expenses = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const budget = transactions.map(t => ({
+      description: t.description || t.category,
+      type: t.type,
+      amount: t.type === 'income' ? t.amount : -t.amount,
+      category: t.category,
+    }));
     
     // Get workouts for this day
     const dayOfWeek = dayStart.getDay();
@@ -307,11 +326,12 @@ export const getDayActivities = async (req, res) => {
     
     if (weekWorkout) {
       const dayData = weekWorkout.days[fullDayNames[dayOfWeek]];
-      if (dayData && dayData.exercises) {
-        workouts = [{
-          title: dayData.name,
-          exercises: dayData.exercises.map(ex => ex.name),
-        }];
+      if (dayData && dayData.exercises && dayData.exercises.length > 0) {
+        workouts = dayData.exercises.map(ex => ({
+          title: ex.name,
+          completed: ex.completed || false,
+          time: `${ex.sets} sets × ${ex.reps} ${ex.repsUnit || 'reps'}`,
+        }));
       }
     }
     
@@ -319,15 +339,23 @@ export const getDayActivities = async (req, res) => {
     const journals = await Journal.find({
       user: userId,
       createdAt: { $gte: dayStart, $lte: dayEnd },
-    }).select('title content');
+    }).select('title content createdAt');
+    
+    const formattedJournals = journals.map(j => ({
+      title: j.title,
+      time: new Date(j.createdAt).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+    }));
     
     res.json({
       success: true,
       data: {
         goals,
         workouts,
-        budget: { income, expenses },
-        journals,
+        budget,
+        journals: formattedJournals,
       },
     });
   } catch (error) {
