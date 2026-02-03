@@ -26,6 +26,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
     },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
   },
   {
     timestamps: true,

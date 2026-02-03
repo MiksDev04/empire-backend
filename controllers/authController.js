@@ -218,3 +218,69 @@ export const updateProfile = async (req, res, next) => {
     });
   }
 };
+
+// @desc    Google OAuth Sign In/Sign Up
+// @route   POST /api/auth/google
+// @access  Public
+export const googleAuth = async (req, res) => {
+  try {
+    const { email, username, avatar, googleId } = req.body;
+
+    // Validate input
+    if (!email || !googleId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid Google authentication data' 
+      });
+    }
+
+    // Check if user already exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // User exists, sign them in
+      const token = generateToken(user._id);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Google sign-in successful',
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+          token,
+        },
+      });
+    } else {
+      // Create new user with Google data
+      user = await User.create({
+        username: username || email.split('@')[0],
+        email,
+        password: Math.random().toString(36).slice(-8) + 'Aa1!', // Random secure password
+        avatar: avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
+        googleId,
+      });
+
+      const token = generateToken(user._id);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Google sign-up successful',
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+          token,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: error.message || 'Server error during Google authentication' 
+    });
+  }
+};
