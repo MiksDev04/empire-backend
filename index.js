@@ -9,6 +9,7 @@ import budgetRoutes from './routes/budgetRoutes.js';
 import journalRoutes from './routes/journalRoutes.js';
 import trashRoutes from './routes/trashRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import { initWorkoutScheduler } from './utils/workoutScheduler.js';
 
 dotenv.config();
@@ -46,6 +47,7 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/journal', journalRoutes);
 app.use('/api/trash', trashRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Start server (only for local development)
 if (!process.env.VERCEL) {
