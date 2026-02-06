@@ -23,12 +23,13 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Check if user already exists
+    // Check if user already exists (with any method)
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      const signUpMethod = existingUser.googleId ? 'Google' : 'email/password';
       return res.status(400).json({ 
         success: false,
-        message: 'Email already registered' 
+        message: `Email already registered with ${signUpMethod}. Please sign in instead.` 
       });
     }
 
@@ -234,11 +235,16 @@ export const googleAuth = async (req, res) => {
       });
     }
 
-    // Check if user already exists
+    // Check if user already exists with this email
     let user = await User.findOne({ email });
 
     if (user) {
-      // User exists, sign them in
+      // User exists - update googleId if not set (for users who signed up with email/password first)
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+      
       const token = generateToken(user._id);
 
       return res.status(200).json({
@@ -253,7 +259,7 @@ export const googleAuth = async (req, res) => {
         },
       });
     } else {
-      // Create new user with Google data
+      // Create new user with Google data - stored in MongoDB
       user = await User.create({
         username: username || email.split('@')[0],
         email,
@@ -266,7 +272,7 @@ export const googleAuth = async (req, res) => {
 
       return res.status(201).json({
         success: true,
-        message: 'Google sign-up successful',
+        message: 'Google account created and stored in database',
         data: {
           id: user._id,
           username: user.username,
@@ -278,6 +284,15 @@ export const googleAuth = async (req, res) => {
     }
   } catch (error) {
     console.error('Google auth error:', error);
+    
+    // Handle duplicate email error from MongoDB
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'This email is already registered. Please sign in instead.' 
+      });
+    }
+    
     res.status(500).json({ 
       success: false,
       message: error.message || 'Server error during Google authentication' 
