@@ -1,4 +1,5 @@
 import Goal from '../models/Goal.js';
+import { updateCurrentWeekSnapshots } from '../utils/snapshotScheduler.js';
 
 // @desc    Get all goals for the authenticated user
 // @route   GET /api/goals
@@ -271,6 +272,11 @@ export const toggleTaskCompletion = async (req, res) => {
     }
 
     await goal.save();
+
+    // Update snapshots for current week
+    updateCurrentWeekSnapshots(req.user._id).catch(err => 
+      console.error('Failed to update snapshots:', err)
+    );
 
     res.status(200).json({
       success: true,

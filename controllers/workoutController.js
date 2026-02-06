@@ -1,5 +1,6 @@
 import Workout from '../models/Workout.js';
 import { triggerManualArchival } from '../utils/workoutScheduler.js';
+import { updateCurrentWeekSnapshots } from '../utils/snapshotScheduler.js';
 
 // Get user's template or create default one
 export const getTemplate = async (req, res) => {

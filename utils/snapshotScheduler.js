@@ -184,3 +184,25 @@ export const scheduleEndOfDaySnapshots = () => {
 
   console.log('✓ End-of-day snapshot scheduler initialized (runs at 11:59 PM)');
 };
+
+// Update snapshots for current week for a specific user (called when data changes)
+export const updateCurrentWeekSnapshots = async (userId) => {
+  try {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Update snapshots for all 7 days of current week
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      await calculateSnapshot(userId, date);
+    }
+    
+    console.log(`✓ Updated current week snapshots for user ${userId}`);
+  } catch (error) {
+    console.error('Error updating current week snapshots:', error);
+  }
+};

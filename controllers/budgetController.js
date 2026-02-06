@@ -1,4 +1,5 @@
 import Transaction from '../models/Transaction.js';
+import { updateCurrentWeekSnapshots } from '../utils/snapshotScheduler.js';
 
 // @desc    Get all transactions for the authenticated user
 // @route   GET /api/budget
@@ -127,6 +128,11 @@ export const createTransaction = async (req, res) => {
       type,
     });
 
+    // Update snapshots for current week
+    updateCurrentWeekSnapshots(req.user._id).catch(err => 
+      console.error('Failed to update snapshots:', err)
+    );
+
     res.status(201).json({
       success: true,
       data: transaction,
@@ -182,6 +188,11 @@ export const updateTransaction = async (req, res) => {
 
     await transaction.save();
 
+    // Update snapshots for current week
+    updateCurrentWeekSnapshots(req.user._id).catch(err => 
+      console.error('Failed to update snapshots:', err)
+    );
+
     res.status(200).json({
       success: true,
       data: transaction,
@@ -219,6 +230,11 @@ export const deleteTransaction = async (req, res) => {
     }
 
     await transaction.deleteOne();
+
+    // Update snapshots for current week
+    updateCurrentWeekSnapshots(req.user._id).catch(err => 
+      console.error('Failed to update snapshots:', err)
+    );
 
     res.status(200).json({
       success: true,
