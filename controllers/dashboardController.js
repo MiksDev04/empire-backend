@@ -77,7 +77,7 @@ export const getDashboardStats = async (req, res) => {
     });
     
     let workoutsCompleted = 0;
-    let totalWorkoutDays = 7;
+    let totalWorkoutDays = 0;
     
     if (currentWeekWorkout) {
       const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -85,12 +85,18 @@ export const getDashboardStats = async (req, res) => {
       daysOfWeek.forEach(dayName => {
         const day = currentWeekWorkout.days[dayName];
         if (day && day.exercises && day.exercises.length > 0) {
+          totalWorkoutDays++; // Count days that have exercises
           const allCompleted = day.exercises.every(ex => ex.completed);
           if (allCompleted) {
             workoutsCompleted++;
           }
         }
       });
+    }
+    
+    // If no workout days, set to 1 to avoid division by zero display issues
+    if (totalWorkoutDays === 0) {
+      totalWorkoutDays = 1;
     }
     
     // --- GOALS COMPLETED THIS WEEK ---
