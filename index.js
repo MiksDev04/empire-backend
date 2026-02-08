@@ -27,13 +27,6 @@ initWorkoutScheduler();
 app.use(cors());
 app.use(express.json());
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path}`);
-  next();
-});
-
 // Routes
 app.get('/', (req, res) => {
   res.json({ 

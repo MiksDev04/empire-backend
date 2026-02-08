@@ -8,14 +8,6 @@ import DailySnapshot from '../models/DailySnapshot.js';
 export const getDashboardStats = async (req, res) => {
   try {
     const userId = req.user._id;
-    console.log('📊 Dashboard Stats Request:', {
-      userId,
-      userIdType: typeof userId,
-      user: {
-        id: req.user._id,
-        username: req.user.username
-      }
-    });
     
     const now = new Date();
     
@@ -40,18 +32,6 @@ export const getDashboardStats = async (req, res) => {
     // Get ALL transactions to calculate total balance
     const allTransactions = await Transaction.find({ user: userId });
     
-    console.log('📋 ALL Transactions fetched:', {
-      userId,
-      totalCount: allTransactions.length,
-      transactions: allTransactions.map(t => ({
-        id: t._id,
-        type: t.type,
-        amount: t.amount,
-        item: t.item,
-        date: t.date
-      }))
-    });
-    
     // Calculate total balance (all time)
     const totalIncome = allTransactions
       .filter(t => t.type === 'income')
@@ -62,14 +42,6 @@ export const getDashboardStats = async (req, res) => {
       .reduce((sum, t) => sum + t.amount, 0);
     
     const totalBalance = totalIncome - totalExpenses;
-    
-    console.log('💵 Balance Breakdown:', {
-      incomeTransactions: allTransactions.filter(t => t.type === 'income').length,
-      expenseTransactions: allTransactions.filter(t => t.type === 'expense').length,
-      totalIncome,
-      totalExpenses,
-      totalBalance
-    });
     
     // For comparison, get last week's balance
     const lastWeekTransactions = await Transaction.find({
@@ -152,18 +124,6 @@ export const getDashboardStats = async (req, res) => {
       goalsCompleted: goalsCompletedThisWeek,
       totalGoals: totalGoalsThisWeek,
     };
-    
-    console.log('📊 Dashboard Stats Calculated:', {
-      totalIncome,
-      totalExpenses,
-      totalBalance: Math.round(totalBalance),
-      lastWeekBalance: Math.round(lastWeekBalance),
-      savingsChange: Math.round(savingsChange),
-      workoutsCompleted,
-      totalWorkoutDays,
-      goalsCompletedThisWeek,
-      totalGoalsThisWeek,
-    });
     
     res.json({
       success: true,
