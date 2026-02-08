@@ -7,7 +7,16 @@ import DailySnapshot from '../models/DailySnapshot.js';
 // Get dashboard statistics
 export const getDashboardStats = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
+    console.log('📊 Dashboard Stats Request:', {
+      userId,
+      userIdType: typeof userId,
+      user: {
+        id: req.user._id,
+        username: req.user.username
+      }
+    });
+    
     const now = new Date();
     
     // Get start and end of current week (Sunday to Saturday)
@@ -31,6 +40,18 @@ export const getDashboardStats = async (req, res) => {
     // Get ALL transactions to calculate total balance
     const allTransactions = await Transaction.find({ user: userId });
     
+    console.log('📋 ALL Transactions fetched:', {
+      userId,
+      totalCount: allTransactions.length,
+      transactions: allTransactions.map(t => ({
+        id: t._id,
+        type: t.type,
+        amount: t.amount,
+        item: t.item,
+        date: t.date
+      }))
+    });
+    
     // Calculate total balance (all time)
     const totalIncome = allTransactions
       .filter(t => t.type === 'income')
@@ -41,6 +62,14 @@ export const getDashboardStats = async (req, res) => {
       .reduce((sum, t) => sum + t.amount, 0);
     
     const totalBalance = totalIncome - totalExpenses;
+    
+    console.log('💵 Balance Breakdown:', {
+      incomeTransactions: allTransactions.filter(t => t.type === 'income').length,
+      expenseTransactions: allTransactions.filter(t => t.type === 'expense').length,
+      totalIncome,
+      totalExpenses,
+      totalBalance
+    });
     
     // For comparison, get last week's balance
     const lastWeekTransactions = await Transaction.find({
@@ -149,7 +178,7 @@ export const getDashboardStats = async (req, res) => {
 // Get weekly data for charts (uses stored snapshots)
 export const getWeeklyData = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const now = new Date();
     
     // Get start of current week
@@ -278,7 +307,7 @@ export const getWeeklyData = async (req, res) => {
 // Get activities for a specific day
 export const getDayActivities = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const { date } = req.params;
     
     const dayStart = new Date(date);
@@ -385,7 +414,7 @@ export const getDayActivities = async (req, res) => {
 // Create daily snapshot
 export const createDailySnapshot = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const targetDate = req.body.date ? new Date(req.body.date) : new Date();
     
     // Set to start of day
@@ -507,7 +536,7 @@ async function getWorkoutForDay(userId, date) {
 // Backfill snapshots for past days
 export const backfillSnapshots = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const { days = 30 } = req.body; // Default to last 30 days
     
     const snapshots = [];

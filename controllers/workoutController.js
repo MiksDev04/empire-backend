@@ -6,7 +6,7 @@ import { updateCurrentWeekSnapshots } from '../utils/snapshotScheduler.js';
 export const getTemplate = async (req, res) => {
   try {
     let template = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       isTemplate: true,
     });
 
@@ -52,7 +52,7 @@ export const getTemplate = async (req, res) => {
       };
 
       template = await Workout.create({
-        userId: req.user.id,
+        userId: req.user._id,
         weekId: 'template',
         startDate: new Date(),
         days: defaultDays,
@@ -73,13 +73,13 @@ export const updateTemplate = async (req, res) => {
     const { days } = req.body;
 
     let template = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       isTemplate: true,
     });
 
     if (!template) {
       template = await Workout.create({
-        userId: req.user.id,
+        userId: req.user._id,
         weekId: 'template',
         startDate: new Date(),
         days,
@@ -103,7 +103,7 @@ export const getCurrentWeek = async (req, res) => {
     const { weekId } = req.query;
 
     let currentWeek = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       weekId,
       isTemplate: false,
     });
@@ -111,7 +111,7 @@ export const getCurrentWeek = async (req, res) => {
     if (!currentWeek) {
       // Get template and create new week
       let template = await Workout.findOne({
-        userId: req.user.id,
+        userId: req.user._id,
         isTemplate: true,
       });
 
@@ -128,7 +128,7 @@ export const getCurrentWeek = async (req, res) => {
         };
 
         template = await Workout.create({
-          userId: req.user.id,
+          userId: req.user._id,
           weekId: 'template',
           startDate: new Date(),
           days: defaultDays,
@@ -164,7 +164,7 @@ export const getCurrentWeek = async (req, res) => {
       });
 
       currentWeek = await Workout.create({
-        userId: req.user.id,
+        userId: req.user._id,
         weekId,
         startDate: new Date(weekId),
         days: newWeekDays,
@@ -185,7 +185,7 @@ export const updateCurrentWeek = async (req, res) => {
     const { weekId, days } = req.body;
 
     let currentWeek = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       weekId,
       isTemplate: false,
     });
@@ -212,7 +212,7 @@ export const toggleExercise = async (req, res) => {
     const { weekId, day, exerciseId } = req.params;
 
     const workout = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       weekId,
       isTemplate: false,
     });
@@ -257,7 +257,7 @@ export const archiveWeek = async (req, res) => {
     const { weekId } = req.params;
 
     const workout = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       weekId,
       isTemplate: false,
     });
@@ -287,7 +287,7 @@ export const archiveWeek = async (req, res) => {
 export const getHistory = async (req, res) => {
   try {
     const history = await Workout.find({
-      userId: req.user.id,
+      userId: req.user._id,
       isTemplate: false,
       archivedAt: { $exists: true },
     }).sort({ archivedAt: -1 });
@@ -305,7 +305,7 @@ export const deleteWeek = async (req, res) => {
     const { weekId } = req.params;
 
     const workout = await Workout.findOneAndDelete({
-      userId: req.user.id,
+      userId: req.user._id,
       weekId,
       isTemplate: false,
     });
@@ -330,7 +330,7 @@ export const syncWithTemplate = async (req, res) => {
 
     // Get current week
     const currentWeek = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       weekId,
       isTemplate: false,
     });
@@ -343,7 +343,7 @@ export const syncWithTemplate = async (req, res) => {
 
     // Get template
     const template = await Workout.findOne({
-      userId: req.user.id,
+      userId: req.user._id,
       isTemplate: true,
     });
 
@@ -423,7 +423,7 @@ export const manualArchiveWeeks = async (req, res) => {
 // Generate sample workout history (for testing)
 export const generateSampleHistory = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     
     // Create 3 weeks of sample history
     const sampleWeeks = [];
