@@ -124,6 +124,18 @@ export const getDashboardStats = async (req, res) => {
       totalGoals: totalGoalsThisWeek,
     };
     
+    console.log('📊 Dashboard Stats Calculated:', {
+      totalIncome,
+      totalExpenses,
+      totalBalance: Math.round(totalBalance),
+      lastWeekBalance: Math.round(lastWeekBalance),
+      savingsChange: Math.round(savingsChange),
+      workoutsCompleted,
+      totalWorkoutDays,
+      goalsCompletedThisWeek,
+      totalGoalsThisWeek,
+    });
+    
     res.json({
       success: true,
       data: result,
